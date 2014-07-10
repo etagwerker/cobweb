@@ -233,7 +233,7 @@ class Cobweb
           content[:location] = response["location"]
           content[:headers] = HashUtil.deep_symbolize_keys(response.to_hash)
           # parse data for links
-          link_parser = ContentLinkParser.new(content[:url], content[:body])
+          link_parser = ContentLinkParser.new(content[:url], content[:body], @options)
           content[:links] = link_parser.link_data
 
         end
