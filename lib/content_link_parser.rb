@@ -55,6 +55,8 @@ class ContentLinkParser
     links = links.map{|link| UriHelper.join_no_fragment(@url, link).to_s }
     links = links.reject{|link| link =~ /\/([^\/]+?)\/\1\// }
     links = links.reject{|link| link =~ /([^\/]+?)\/([^\/]+?)\/.*?\1\/\2/ }
+    links = links.reject{|link| link =~ /\/([^\/]+\.js)/ } if @options[:exclude_js]
+    links = links.reject{|link| link =~ /\/([^\/]+\.css)/ } if @options[:exclude_css]
     links = links.select{|link| options[:valid_schemes].include? link.split(':')[0].to_sym}
     links
   end
