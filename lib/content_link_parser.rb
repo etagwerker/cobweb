@@ -9,29 +9,35 @@ class ContentLinkParser
     @options = {}.merge(options)
     @url = url
     @doc = Nokogiri::HTML(content)
-    
+
     base_url = @url.to_s
     if @doc.at("base[href]")
       base_url = @doc.at("base[href]").attr("href").to_s
       @url = base_url if base_url
     end
 
+    if @options[:whole_img_tag]
+      tag_or_filename = Proc.new { |array, tag| array << tag.serialize(:encoding => 'UTF-8') }
+    else
+      tag_or_filename = "src"
+    end
+
     @options[:tags] = {}
     @options[:tags][:links] = [["a[href]", "href"], ["frame[src]", "src"], ["meta[@http-equiv=\"refresh\"]", "content"], ["link[href]:not([rel])", "href"], ["area[href]", "href"]]
-    @options[:tags][:images] = [["img[src]", "src"]]
+    @options[:tags][:images] = [["img[src]", tag_or_filename]]
     @options[:tags][:related] = [["link[rel]", "href"]]
     @options[:tags][:scripts] = [["script[src]", "src"]]
     @options[:tags][:styles] = [["link[rel='stylesheet'][href]", "href"], ["style[@type^='text/css']", lambda{|array,tag|
       first_regex =/url\((['"]?)(.*?)\1\)/
       tag.content.scan(first_regex) {|match| array << Addressable::URI.parse(match[1]).to_s}
     }]]
-    
+
     #clear the default tags if required
     @options[:tags] = {} if @options[:ignore_default_tags]
     @options[:tags].merge!(@options[:additional_tags]) unless @options[:additional_tags].nil?
-    
+
   end
- 
+
   # Returns a hash with arrays of links
   def link_data
     data = {}
@@ -39,20 +45,20 @@ class ContentLinkParser
       data[key.to_sym] = self.instance_eval(key.to_s)
     end
     data
-  end  
-  
+  end
+
   # Returns an array of all absolutized links, specify :valid_schemes in options to limit to certain schemes.  Also filters repeating folders (ie if the crawler got in a link loop situation)
-  def all_links(options = {})    
+  def all_links(options = {})
     options[:valid_schemes] = [:http, :https] unless options.has_key? :valid_schemes
     data = link_data
     links = data.keys.map{|key| data[key]}.flatten.uniq
     links = links.map{|link| UriHelper.join_no_fragment(@url, link).to_s }
     links = links.reject{|link| link =~ /\/([^\/]+?)\/\1\// }
-    links = links.reject{|link| link =~ /([^\/]+?)\/([^\/]+?)\/.*?\1\/\2/ }    
+    links = links.reject{|link| link =~ /([^\/]+?)\/([^\/]+?)\/.*?\1\/\2/ }
     links = links.select{|link| options[:valid_schemes].include? link.split(':')[0].to_sym}
     links
   end
-  
+
   # Returns the type of links as a method rather than using the hash e.g. 'content_link_parser.images'
   def method_missing(m)
     if @options[:tags].keys.include?(m)
@@ -65,7 +71,7 @@ class ContentLinkParser
       super
     end
   end
-  
+
   private
   # Processes the content to find links based on options[:tags]
   def find_matches(array, selector, attribute)
@@ -94,4 +100,3 @@ class ContentLinkParser
   end
 
 end
-
