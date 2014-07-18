@@ -134,6 +134,9 @@ class CobwebCrawler
             @stats.update_status("Completed #{url}.")
             yield content, @stats.get_statistics if block_given?
           end
+        rescue LocalJumpError => e
+          puts "Reached image limit per site."
+          return
         rescue => e
           puts "Error loading #{url}: #{e}"
           #puts "!!!!!!!!!!!! ERROR !!!!!!!!!!!!!!!!"
